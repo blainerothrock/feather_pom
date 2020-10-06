@@ -1,80 +1,54 @@
 import time
-from button import Button
+import pulseio
+import board
 import json
-
 from piezo import buzz
 
 class Pom:
-    def __init__(self, datetime, pom_time=1500):
-        self.pom_time = pom_time
-        self._state = 0
 
-        self.datetime = datetime
-        self.time = time.mktime(self.datetime)
-
-        self.countdown = 0
-        self.timer = 0
+    def __init__(self):
+        self.last = None
 
         with open('pom.json', 'r') as f:
-            self.data = json.load(f)
-    
-    @property
-    def state(self):
-        return self._state
-    
-    @state.setter
-    def state(self, n):
-        if n == 1 and self._state == 0: # start timer
-            self.countdown = self.pom_time
-        self._state = n
-    
-    @property
-    def total_poms(self):
-        return ''
+            self.config = json.load(f)
 
-    @property
-    def pretty_datetime(self):
-        return f'{self.datetime.tm_mon:02}.{self.datetime.tm_mday:02}.{self.datetime.tm_year} {self.datetime.tm_hour:02}:{self.datetime.tm_min:02}:{self.datetime.tm_sec:02}'
+        self.pom_time = self.config.get('pom_time', 1500)
+        self.break_time = self.config.get('break_time', 300)
+        self.additional_time = self.config.get('additional_time', 300)
 
-    @property
-    def pretty_countdown(self):
-        min = int(self.countdown / 60)
-        sec = int(self.countdown % 60)
-        return f'{min:02}:{sec:02}'
+    def update(self, btnA, btnB, btnC, display, timer, accel, current):
+        if self.last == None: 
+            self.last = current
 
-    def update(self, datetime):
-        self.datetime = datetime
-        self.time = time.mktime(self.datetime)
-
-        if self._state == 1: # countdown
-            self.countdown -= 1
-
-            if self.countdown == 0:
-                self._timer = 0
-                self._state = 3
+        # on
+        if display.state == 1: # on
+            if timer.state == 0:
+                if btnA.active:
+                    timer.start_countdown(self.pom_time, "POM")
+                elif btnB.active:
+                    timer.start_countdown(self.break_time, "BREAK")
+            elif timer.state == 1:
+                if btnA.active:
+                    timer.state = 2
+                if btnB.active:
+                    timer.countdown += self.additional_time
+            elif timer.state == 2:
+                if btnA.active:
+                    timer.state = 1
+                if btnC.active:
+                    timer.state = 0
         
-        if self._state == 3:
-            buzz()
-            self.data["count"] += 1
-            self._save()
+        # turn on display on btn press and reset on timer on each press
+        if any([btnA.active, btnB.active, btnC.active, timer.state == 3, accel.tapped]):
+            display.state = 1
+        
+        # perform all time based updates
+        btnA.update()
+        btnB.update()
+        btnC.update()
+        display.handle_presentation(timer)
 
-            self.timer += 1
-            if self.timer == 10:
-                self._state = 0
-                self.timer = 0
-
-    def _save(self):
-        try:
-            with open("pom.json", "w") as outfile: 
-                outfile.write(json.dumps(self.data)) 
-        except: pass
-    
-    def _state_label(self):
-        if self.state == 0: return 'idle'
-        if self.state == 1: return 'timer'
-        if self.state == 2: return 'paused'
-        if self.state == 3: return 'done'
-        if self.state == -1: return 'ERR'
-
-    def __str__(self):
-        return self._state_label()
+        if current > self.last:
+            self.last = current # tick
+            display.update()
+            timer.update(current)

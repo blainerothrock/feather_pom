@@ -15,6 +15,8 @@ def present(pom):
         return state_2(pom)
     if pom.state == 3:
         return state_3(pom)
+    if pom.state == 4:
+        return state_4(pom)
 
 def lbl(text, y):
     lbl_state = label.Label(font, text=f'{text}')
@@ -36,7 +38,7 @@ def state_0(pom):
     return grp
 
 def state_1(pom):
-    lbl_time = lbl(f'POM {pom.total_poms}', 5)
+    lbl_time = lbl(f'{pom.countdown_title}', 5)
     lbl_state = lbl(pom.pretty_countdown, 5 + 14)
 
     grp = displayio.Group()

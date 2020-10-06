@@ -1,1 +1,7 @@
-{"count": 1}
+{
+    "count": 1,
+    "pom_time": 1500,
+    "break_time": 300,
+    "additional_time": 300,
+    "sound": true
+}

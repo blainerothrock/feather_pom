@@ -2,14 +2,15 @@ import board
 import time
 import neopixel
 import adafruit_lsm303_accel
+import busio
 
 from button import Button
 from display_manager import present
-from pom import Pom
+from timer import Timer
 from display import Display
 from clock import Clock
 from accelerometer import Accelerometer
-from state import State
+from pom import Pom 
 from piezo import buzz
 
 i2c = board.I2C()
@@ -30,13 +31,13 @@ btnC = Button('C', board.D5)
 # set the date (year, mon, day, hour, min, sec, day_of_week, day_of_year, dst)
 # rtc.datetime = time.struct_time((2020, 10, 2, 12, 59, 40, 4, 276, 0))
 
-pom = Pom(clock.datetime())
-state = State()
+timer = Timer(clock.datetime())
+pom = Pom()
 
 while True:
 
     current = clock.datetime()
-    state.update(btnA, btnB, btnC, display, pom, accel, current)
+    pom.update(btnA, btnB, btnC, display, timer, accel, current)
     
 
 print('complete --*')
